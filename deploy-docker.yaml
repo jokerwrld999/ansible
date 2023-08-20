@@ -1,0 +1,63 @@
+---
+- name: Wait for ssh connection
+  become: true
+  hosts: aws_ec2
+  tasks:
+    - name: Ensure ssh port open
+      wait_for:
+        port: 22
+        delay: 10
+        timeout: 100
+        search_regex: OpenSSH
+        host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
+      vars:
+        ansible_connection: local
+
+- name: Install Docker
+  become: true
+  hosts: aws_ec2
+  tasks:
+    - name: Pre-run | Update package cache (debian, etc)
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+        name: "*"
+        state: latest
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - docker
+          - docker-compose
+        state: latest
+
+- name: Add user to docker group
+  become: true
+  hosts: aws_ec2
+  tasks:
+    - name: Add user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: true
+    - name: Reconnect to server session
+      meta: reset_connection
+
+# - name: Start Docker container
+#   hosts: ec2
+#   vars_prompt:
+#     - name: docker_password
+#       prompt: Enter password for docker registry
+#   tasks:
+#     - name: Copy docker compose
+#       copy:
+#         src: https://github.com/jokerwrld999/
+#         dest: ~/docker-compose.yaml
+#     - name: Docker login
+#       docker_login:
+#         registry_url: https://index.docker.io/v1/
+#         username: jokerwrld999
+#         password: "{{docker_password}}"
+#     - name: Run Docker Compose File
+#       docker_compose:
+#         project_src: ~/docker-compose.yaml
+#         state: present
