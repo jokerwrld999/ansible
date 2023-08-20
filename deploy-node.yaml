@@ -1,0 +1,19 @@
+---
+- name: Install node and npm
+  become: true
+  hosts: ec2
+  tasks:
+  - name: Pre-run | Update package cache (debian, etc)
+    ansible.builtin.apt:
+      update_cache: yes
+      cache_valid_time: 3600
+      name: "*"
+      state: latest
+  - name: Install nodejs and npm
+    apt:
+      name:
+        - nodejs
+        - npm
+      state: latest
+
+- name: Deploy nodejs app
